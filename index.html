@@ -1,9 +1,11 @@
+
 <!DOCTYPE html>
 <html lang="en">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>This Is Only a Test</title>
+  <title>Articles</title>
+  <meta name="description" content="Articles and writing.">
 
   <style>
     * {
@@ -33,22 +35,26 @@
     }
 
     h1 {
-      margin: 0 0 12px;
+      margin: 0 0 20px;
       font-size: 36px;
       line-height: 1.15;
       font-weight: normal;
       letter-spacing: -0.7px;
     }
 
-    time {
-      display: block;
-      margin-bottom: 28px;
-      color: #666;
-      font-size: 15px;
+    #article-list {
+      margin: 0;
+      padding-left: 22px;
     }
 
-    article p {
-      margin: 0 0 22px;
+    #article-list li {
+      padding-left: 2px;
+      margin-bottom: 8px;
+    }
+
+    #status {
+      color: #666;
+      font-size: 15px;
     }
 
     footer {
@@ -76,34 +82,78 @@
   </header>
 
   <main>
-    <article>
-      <h1>This Is Only a Test</h1>
+    <h1>Writing</h1>
 
-      <time datetime="2000-04-14">2000-04-14</time>
+    <p id="status" role="status">Loading articles...</p>
 
-      <p>
-        Start your article here. Keep the writing simple,
-        with a comfortable line length and generous spacing
-        between paragraphs.
-      </p>
-
-      <p>
-        Add another paragraph here. This layout is designed
-        for reading, without distracting images, video,
-        sidebars, or unnecessary interface elements.
-      </p>
-
-      <p>
-        Continue writing as many paragraphs as you need.
-        Each paragraph will automatically follow the same
-        typography and spacing.
-      </p>
-    </article>
+    <ul id="article-list"></ul>
   </main>
 
   <footer>
     <p>© <a href="index.html">This is test</a></p>
-    <p><a href="writing.html">← Back to writing</a></p>
   </footer>
+
+  <script>
+    // Supabase credentials
+    const SUPABASE_URL =
+      "https://tvabtksjygxsdiqkoxew.supabase.co";
+
+    const SUPABASE_KEY =
+      "sb_publishable_9IkYqmbQbxuMnJjS3wsTQw_xn4o-Xfp";
+
+    async function loadArticles() {
+      const list = document.getElementById("article-list");
+      const status = document.getElementById("status");
+
+      try {
+        const url = new URL(
+          `${SUPABASE_URL}/rest/v1/blog`
+        );
+
+        url.searchParams.set("select", "slg,tit,dte,id");
+        url.searchParams.set("order", "dte.desc,id.desc");
+
+        const response = await fetch(url, {
+          headers: {
+            apikey: SUPABASE_KEY
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(`Supabase error: ${response.status}`);
+        }
+
+        const articles = await response.json();
+
+        list.replaceChildren();
+
+        if (articles.length === 0) {
+          status.textContent = "No articles yet.";
+          return;
+        }
+
+        articles.forEach(article => {
+          const item = document.createElement("li");
+          const link = document.createElement("a");
+
+          link.href =
+            `core.html?slug=${encodeURIComponent(article.slg)}`;
+
+          link.textContent = article.tit;
+
+          item.appendChild(link);
+          list.appendChild(item);
+        });
+
+        status.hidden = true;
+
+      } catch (error) {
+        console.error(error);
+        status.textContent = "Could not load articles.";
+      }
+    }
+
+    loadArticles();
+  </script>
 </body>
 </html>
