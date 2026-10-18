@@ -1,0 +1,210 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Blog</title>
+  <meta name="description" content="">
+
+  <style>
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      max-width: 600px;
+      margin: 40px auto;
+      padding: 0 20px;
+      color: #111;
+      background: #fff;
+      font-family: Georgia, "Times New Roman", serif;
+      font-size: 18px;
+      line-height: 1.5;
+    }
+
+    header {
+      margin-bottom: 35px;
+      font-size: 16px;
+    }
+
+    a {
+      color: #111;
+      text-decoration: underline;
+      text-underline-offset: 2px;
+    }
+
+    h1 {
+      margin: 0 0 12px;
+      font-size: 36px;
+      line-height: 1.15;
+      font-weight: normal;
+      letter-spacing: -0.7px;
+    }
+
+    time {
+      display: block;
+      margin-bottom: 28px;
+      color: #666;
+      font-size: 15px;
+    }
+
+    article p {
+      margin: 0 0 22px;
+    }
+
+    footer {
+      margin-top: 45px;
+      padding-bottom: 30px;
+      font-size: 15px;
+    }
+
+    footer p {
+      margin-bottom: 12px;
+    }
+
+    #status {
+      color: #666;
+      font-size: 15px;
+    }
+
+    @media (max-width: 640px) {
+      body {
+        margin-top: 24px;
+        font-size: 17px;
+      }
+
+      h1 {
+        font-size: 32px;
+      }
+    }
+  </style>
+</head>
+
+<body>
+  <header>
+    <a href="index.html">This is test</a>
+  </header>
+
+  <main>
+    <article id="article" hidden>
+      <h1 id="title"></h1>
+      <time id="date"></time>
+      <div id="content"></div>
+    </article>
+
+    <p id="status" role="status" hidden></p>
+  </main>
+
+  <footer>
+    <p>© <a href="index.html">This is test</a></p>
+    <p><a href="index.html">← Back to writing</a></p>
+  </footer>
+
+  <script>
+    // 1. Supabase credentials
+    const SUPABASE_URL =
+      "https://tvabtksjygxsdiqkoxew.supabase.co";
+
+    const SUPABASE_KEY =
+      "sb_publishable_9IkYqmbQbxuMnJjS3wsTQw_xn4o-Xfp";
+
+    // 2. HTML elements
+    const articleElement = document.getElementById("article");
+    const titleElement = document.getElementById("title");
+    const dateElement = document.getElementById("date");
+    const contentElement = document.getElementById("content");
+    const statusElement = document.getElementById("status");
+
+    // 3. Load article directly from Supabase
+    async function loadArticle() {
+      const slug = new URLSearchParams(
+        window.location.search
+      ).get("slug");
+
+      if (!slug) {
+        showError("Article not found.");
+        return;
+      }
+
+      try {
+        const url = new URL(
+          `${SUPABASE_URL}/rest/v1/blog`
+        );
+
+        url.searchParams.set("select", "slg,dte,tit,txt");
+        url.searchParams.set("slg", `eq.${slug}`);
+        url.searchParams.set("limit", "1");
+
+        const response = await fetch(url, {
+          headers: {
+            apikey: SUPABASE_KEY
+          }
+        });
+
+        if (!response.ok) {
+          throw new Error(
+            `Supabase request failed: ${response.status}`
+          );
+        }
+
+        const articles = await response.json();
+        const data = articles[0];
+
+        if (!data) {
+          showError("Article not found.");
+          return;
+        }
+
+        // 4. Prepare the title
+        titleElement.textContent = data.tit;
+        document.title = data.tit;
+
+        // 5. Prepare the date
+        dateElement.dateTime = data.dte || "";
+        dateElement.textContent = data.dte || "";
+
+        // 6. Prepare the article paragraphs
+        contentElement.replaceChildren();
+
+        (data.txt || "")
+          .trim()
+          .split(/\n\s*\n/)
+          .filter(paragraph => paragraph.trim())
+          .forEach(paragraph => {
+            const p = document.createElement("p");
+            p.textContent = paragraph.trim();
+            contentElement.appendChild(p);
+          });
+
+        // 7. Prepare the page description
+        const description = (data.txt || "")
+          .trim()
+          .replace(/\s+/g, " ")
+          .slice(0, 160);
+
+        document.querySelector(
+          'meta[name="description"]'
+        ).content = description;
+
+        // 8. Reveal the complete article
+        articleElement.hidden = false;
+        statusElement.hidden = true;
+
+      } catch (error) {
+        console.error(error);
+        showError("Could not load the article. Please try again.");
+      }
+    }
+
+    // 9. Show an error only if something goes wrong
+    function showError(message) {
+      articleElement.hidden = true;
+      statusElement.textContent = message;
+      statusElement.hidden = false;
+    }
+
+    // 10. Start fetching immediately
+    loadArticle();
+  </script>
+</body>
+</html>
